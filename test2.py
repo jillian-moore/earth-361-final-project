@@ -129,6 +129,63 @@ for t in range(n_weeks - 1):
     E_v[t+1] = max(0, E_v[t+1])
     I_v[t+1] = max(0, I_v[t+1])
 
+# After the simulation loop, add:
+
+# Calculate mosquito populations over time
+m_values = []
+N_v_values = []
+for t in range(n_weeks):
+    temp = df.loc[t, 'current_temperature']
+    precip = df.loc[t, 'current_precipitation']
+    _, _, m = get_params(temp, precip)
+    m_values.append(m)
+    N_v_values.append(m * N_h * 0.5)
+
+# Add a new plot
+fig2, axes2 = plt.subplots(3, 1, figsize=(12, 10))
+
+# Plot 1: Temperature and precipitation
+ax = axes2[0]
+ax2 = ax.twinx()
+ax.plot(df['current_temperature'], color='red', label='Temperature')
+ax2.plot(df['current_precipitation'], color='blue', label='Precipitation', alpha=0.6)
+ax.set_ylabel('Temperature (°C)', color='red')
+ax2.set_ylabel('Precipitation (mm)', color='blue')
+ax.set_title('Climate Variables')
+ax.legend(loc='upper left')
+ax2.legend(loc='upper right')
+
+# Plot 2: Mosquito multiplier
+ax = axes2[1]
+ax.plot(m_values, color='green', linewidth=2)
+ax.set_ylabel('Mosquito Multiplier (m)')
+ax.set_title('Climate-Based Mosquito Population Multiplier')
+ax.axhline(1.0, color='black', linestyle='--', alpha=0.3)
+ax.grid(True, alpha=0.3)
+
+# Plot 3: Total mosquito population vs infection prevalence
+ax = axes2[2]
+ax.plot(N_v_values, label='Total Mosquito Pop', color='gray', linewidth=2)
+ax.plot(I_v, label='Infected Mosquitoes', color='red', linewidth=2)
+ax.set_ylabel('Count')
+ax.set_xlabel('Week')
+ax.set_title('Mosquito Population vs Infected')
+ax.legend()
+ax.grid(True, alpha=0.3)
+ax.set_yscale('log')  # log scale to see both
+
+plt.tight_layout()
+plt.savefig('mosquito_diagnostics.png', dpi=300)
+plt.show()
+
+# Print diagnostics
+print(f"\n=== Mosquito Diagnostics ===")
+print(f"Mosquito multiplier range: {min(m_values):.2f} to {max(m_values):.2f}")
+print(f"Total mosquito population range: {min(N_v_values):.0f} to {max(N_v_values):.0f}")
+print(f"Initial infected prevalence: {I_v[0]/N_v_values[0]*100:.4f}%")
+print(f"Max infected mosquitoes: {max(I_v):.0f}")
+print(f"Weeks with <10 infected mosquitoes: {sum(I_v < 10)}")
+
 # evaluate ----
 I_pred = I_h
 r2 = r2_score(df['total_cases'], I_pred)
@@ -139,3 +196,55 @@ print(f"\n=== Model Performance ===")
 print(f"R² Score: {r2:.4f}")
 print(f"RMSE: {rmse:.2f}")
 print(f"MAE: {mae:.2f}")
+
+# visualize ----
+fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+
+# plot 1: cases
+ax = axes[0, 0]
+ax.plot(df['total_cases'].values, 'o-', label='Observed', 
+        linewidth=2, markersize=4, color='red', alpha=0.7)
+ax.plot(I_pred, '-', label='Predicted (SEI-SEIR)', 
+        linewidth=2, color='blue', alpha=0.8)
+ax.set_xlabel('Week', fontsize=11)
+ax.set_ylabel('Cases', fontsize=11)
+ax.set_title(f'Dengue Cases (R²={r2:.3f})', fontsize=12, fontweight='bold')
+ax.legend(fontsize=10)
+ax.grid(True, alpha=0.3)
+
+# plot 2: human compartments
+ax = axes[0, 1]
+ax.plot(S_h/N_h, label='Susceptible', linewidth=2, alpha=0.7)
+ax.plot(E_h/N_h, label='Exposed', linewidth=2, alpha=0.7)
+ax.plot(I_h/N_h, label='Infected', linewidth=2, alpha=0.7)
+ax.plot(R_h/N_h, label='Recovered', linewidth=2, alpha=0.7)
+ax.set_xlabel('Week', fontsize=11)
+ax.set_ylabel('Proportion', fontsize=11)
+ax.set_title('Human Compartments', fontsize=12, fontweight='bold')
+ax.legend(fontsize=9)
+ax.grid(True, alpha=0.3)
+
+# plot 3: mosquito dynamics
+ax = axes[1, 0]
+ax.plot(E_v, label='Exposed Mosquitoes', linewidth=2, alpha=0.7, color='orange')
+ax.plot(I_v, label='Infected Mosquitoes', linewidth=2, alpha=0.7, color='red')
+ax.set_xlabel('Week', fontsize=11)
+ax.set_ylabel('Count', fontsize=11)
+ax.set_title('Mosquito Infection Dynamics', fontsize=12, fontweight='bold')
+ax.legend(fontsize=10)
+ax.grid(True, alpha=0.3)
+
+# plot 4: residuals
+ax = axes[1, 1]
+residuals = df['total_cases'].values - I_pred
+ax.plot(residuals, 'o-', linewidth=2, markersize=4, color='purple', alpha=0.6)
+ax.axhline(0, color='black', linestyle='--', linewidth=1)
+ax.fill_between(range(len(residuals)), residuals, 0, alpha=0.2, color='purple')
+ax.set_xlabel('Week', fontsize=11)
+ax.set_ylabel('Residual', fontsize=11)
+ax.set_title(f'Residuals (RMSE={rmse:.1f})', fontsize=12, fontweight='bold')
+ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('sei_seir_discrete.png', dpi=300, bbox_inches='tight')
+plt.show()
