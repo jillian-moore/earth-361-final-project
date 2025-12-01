@@ -1,4 +1,4 @@
-# numerical modeling: SIR model with climate-dependent transmission
+# numerical modeling: SIR model with climate-dependent transmission (WEEKLY)
 
 # load packages ----
 import numpy as np
@@ -11,157 +11,105 @@ import matplotlib.pyplot as plt
 # load data ----
 fever_df = pd.read_csv("data/processed/dengue_data_cleaned.csv")
 
-# aggregate to national monthly totals ----
-# data is 25 districts x 36 months = 900 rows
-# need to sum districts to get 36 monthly national totals
-df = fever_df.groupby(['year', 'month']).agg({
-    'cases': 'sum',
-    'temp_avg': 'mean',
-    'precipitation_avg': 'mean'
+# aggregate to weekly totals ----
+df = fever_df.groupby(['year', 'week']).agg({
+    'total_cases': 'sum',
+    'current_temperature': 'mean',
+    'current_precipitation': 'mean'
 }).reset_index()
 
-df = df.sort_values(['year', 'month']).reset_index(drop=True)
+df = df.sort_values(['year', 'week']).reset_index(drop=True)
+print(df[['current_temperature','current_precipitation']].describe())
 
-print(f"Total months: {len(df)}")
-print(f"Cases range: {df['cases'].min()} to {df['cases'].max()}")
+# define human + mosquito parameters ----
+N_h = 321992 + 500000      # human population
+gamma = 1/7                # human recovery rate per week
+sigma_h = 1/1              # human incubation rate per week (latent period ~1 week)
+sigma_v_base = 1/1         # mosquito incubation rate (1/EIP) per week
+mu_v_base = 0.1            # mosquito death rate per week
+a_base = 0.3               # biting rate per mosquito per week
+b = 0.5                     # human infection prob
+c = 0.5                     # mosquito infection prob
+N_v = 1e5                   # assume fixed mosquito population (can scale with rainfall)
 
-# define parameters ----
-N = 21982608  # Sri Lanka total population
-gamma = (1/7) * 30  # recovery rate per month (7-day infection, 30-day month)
+# fit regression: mosquito force of infection proxy ----
+# we'll model beta ~ climate as a driver for mosquito infection
+df['total_cases_lag'] = df['total_cases'].shift(1).fillna(0)
+X = df[['current_temperature', 'current_precipitation']]
+y = df['total_cases_lag'] / N_h   # rough proxy for mosquito infection rate
+mosq_model = LinearRegression().fit(X, y)
 
-# calculate rate of change ----
-df['dI_dt'] = df['cases'].diff().fillna(0)
+def mosq_infection(t_idx):
+    """proxy mosquito infection from climate"""
+    T = df.loc[t_idx, 'current_temperature']
+    R = df.loc[t_idx, 'current_precipitation']
+    return max(0.001, mosq_model.intercept_ + mosq_model.coef_[0]*T + mosq_model.coef_[1]*R)
 
-# calculate S and R over time ----
-# initialize
-S_vals = np.zeros(len(df))
-R_vals = np.zeros(len(df))
-
-S_vals[0] = N - df.loc[0, 'cases']
-R_vals[0] = 0
-
-# update for each time step
-for i in range(1, len(df)):
-    # people recover at rate gamma per month
-    R_vals[i] = R_vals[i-1] + gamma * df.loc[i-1, 'cases']
-    # susceptible = total - infected - recovered
-    S_vals[i] = N - df.loc[i, 'cases'] - R_vals[i]
-
-df['S'] = S_vals
-df['R'] = R_vals
-
-# estimate empirical beta ----
-# from SIR equation: dI/dt = β*S*I/N - γ*I
-# rearranging: β = (dI/dt + γ*I) * N / (S*I)
-beta_vals = []
-for i, row in df.iterrows():
-    I = row['cases']
-    S = row['S']
-    dI = row['dI_dt']
+# define SEI-SEIR ODE system ----
+def sei_seir_ode(t, y):
+    S_h, E_h, I_h, R_h, S_v, E_v, I_v = y
+    t_idx = int(np.clip(round(t), 0, len(df)-1))
     
-    if I > 0 and S > 0:
-        beta = (dI + gamma * I) * N / (S * I)
-        if beta > 0:
-            beta_vals.append(beta)
-        else:
-            beta_vals.append(np.nan)
-    else:
-        beta_vals.append(np.nan)
-
-df['beta'] = beta_vals
-
-# fill missing beta values
-df['beta'] = df['beta'].fillna(method='ffill').fillna(method='bfill')
-
-print(f"\nBeta range: {df['beta'].min():.4f} to {df['beta'].max():.4f}")
-
-# fit regression: β(T,R) ----
-# model beta as function of temperature and rainfall
-data = df[['temp_avg', 'precipitation_avg', 'beta']].dropna()
-
-X_clean = data[['temp_avg', 'precipitation_avg']]
-y_clean = data['beta']
-
-model = LinearRegression().fit(X_clean, y_clean)
-
-print(f"\nβ(T,R) = {model.intercept_:.4f} + {model.coef_[0]:.4f}*T + {model.coef_[1]:.4f}*R")
-
-# define beta function ----
-def beta_func(t_index):
-    """Calculate transmission rate at time t based on climate"""
-    T = df.loc[t_index, 'temp_avg']
-    R = df.loc[t_index, 'precipitation_avg']
-    beta = model.intercept_ + model.coef_[0]*T + model.coef_[1]*R
-    return max(0.001, beta)  # ensure positive
-
-# define SIR ODE system ----
-def sir_ode(t, y):
-    """SIR differential equations with time-varying beta"""
-    S, I, R = y
-    t_idx = int(np.clip(round(t), 0, len(df) - 1))
-    beta = beta_func(t_idx)
+    # mosquito climate-driven rates
+    a = a_base  # biting rate, could scale with T
+    mu_v = mu_v_base  # mosquito death rate
+    sigma_v = sigma_v_base  # mosquito incubation
     
-    dS = -beta * S * I / N
-    dI = beta * S * I / N - gamma * I
-    dR = gamma * I
+    # force of infection
+    lambda_h = a * b * I_v / N_h          # humans
+    lambda_v = a * c * I_h / N_h + mosq_infection(t_idx)  # mosquitoes, plus climate-driven
     
-    return [dS, dI, dR]
+    # human equations
+    dS_h = -lambda_h * S_h
+    dE_h = lambda_h * S_h - sigma_h * E_h
+    dI_h = sigma_h * E_h - gamma * I_h
+    dR_h = gamma * I_h
+    
+    # mosquito equations
+    dS_v = -lambda_v * S_v - mu_v * S_v
+    dE_v = lambda_v * S_v - sigma_v * E_v - mu_v * E_v
+    dI_v = sigma_v * E_v - mu_v * I_v
+    
+    return [dS_h, dE_h, dI_h, dR_h, dS_v, dE_v, dI_v]
 
-# set initial conditions ----
-I0 = df.loc[0, 'cases']
+# initial conditions ----
+I0 = df.loc[0, 'total_cases']
+E0 = I0 * 0.5
 R0 = 0
-S0 = N - I0 - R0
+S0 = N_h - I0 - R0 - E0
 
-# solve SIR model ----
-t_span = [0, len(df) - 1]
+# mosquito initial conditions
+I_v0 = 100
+E_v0 = 1000
+S_v0 = N_v - I_v0 - E_v0
+
+y0 = [S0, E0, I0, R0, S_v0, E_v0, I_v0]
+
+# solve ODE ----
+t_span = [0, len(df)-1]
 t_eval = np.arange(len(df))
 
-sol = solve_ivp(sir_ode, t_span, [S0, I0, R0], t_eval=t_eval)
+sol = solve_ivp(sei_seir_ode, t_span, y0, t_eval=t_eval, method='RK45')
 
 # extract predictions ----
-S_pred = sol.y[0]
-I_pred = sol.y[1]
-R_pred = sol.y[2]
+S_h_pred, E_h_pred, I_h_pred, R_h_pred = sol.y[:4]
 
-# evaluate model performance ----
-r2 = r2_score(df['cases'], I_pred)
-rmse = np.sqrt(mean_squared_error(df['cases'], I_pred))
-mae = np.mean(np.abs(df['cases'] - I_pred))
+# evaluate model ----
+r2 = r2_score(df['total_cases'], I_h_pred)
+rmse = np.sqrt(mean_squared_error(df['total_cases'], I_h_pred))
+mae = np.mean(np.abs(df['total_cases'] - I_h_pred))
 
-# calculate R0 ----
-mean_beta = df['beta'].mean()
-R0 = mean_beta / gamma
+print(f"\n=== SEI-SEIR Model Performance ===")
+print(f"R² Score: {r2:.4f}")
+print(f"RMSE: {rmse:.2f}")
+print(f"MAE: {mae:.2f}")
 
-# visualize results ----
-fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-
-# plot 1: predictions vs observed
-ax = axes[0]
-ax.plot(df['cases'].values, 'o-', label='Observed Cases', 
-        linewidth=2, markersize=6, color='steelblue')
-ax.plot(I_pred, 's-', label='Predicted Cases', 
-        linewidth=2, markersize=6, color='coral')
-ax.set_xlabel('Month', fontsize=11)
-ax.set_ylabel('Number of Cases', fontsize=11)
-ax.set_title('Observed vs Predicted Dengue Cases', fontsize=12, fontweight='bold')
-ax.legend(fontsize=10)
-ax.grid(True, alpha=0.3)
-
-# plot 2: beta over time
-ax = axes[1]
-ax.plot(df['beta'].values, 'o-', label='Empirical β', 
-        linewidth=2, color='forestgreen')
-ax.axhline(mean_beta, color='red', linestyle='--', 
-           label=f'Mean β = {mean_beta:.2f}', linewidth=2)
-ax.set_xlabel('Month', fontsize=11)
-ax.set_ylabel('Transmission Rate β', fontsize=11)
-ax.set_title('Transmission Rate Over Time', fontsize=12, fontweight='bold')
-ax.legend(fontsize=10)
-ax.grid(True, alpha=0.3)
-
-plt.tight_layout()
-
-# save predictions ----
-df['I_pred'] = I_pred
-df['S_pred'] = S_pred
-df['R_pred'] = R_pred
+# plot results ----
+plt.figure(figsize=(12,5))
+plt.plot(df['total_cases'], label='Observed Cases', color='red')
+plt.plot(I_h_pred, label='Predicted Cases (SEI-SEIR)', color='blue')
+plt.xlabel('Week')
+plt.ylabel('Cases')
+plt.legend()
+plt.title('SEI-SEIR Dengue Model')
+plt.show()
