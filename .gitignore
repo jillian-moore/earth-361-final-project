@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+*.egg-info/
+
+# Data (if large)
+data/raw/*.csv
+
+# LaTeX
+report/*.aux
+report/*.log
+report/*.out
+report/*.synctex.gz
+
+# Results
+results/*.pkl
+results/*.joblib
+
+# OS
+.DS_Store
+.vscode/
