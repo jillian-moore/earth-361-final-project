@@ -14,6 +14,12 @@ print(fever_df.head())
 print(fever_df.info())       
 print(fever_df.columns.tolist())
 
+# check missing values ----
+print(fever_df.isna().sum())
+# drop row with missing value in problematic cols
+prob_cols = ['temp_avg', 'precipitation_avg', 'humidity_avg']
+fever_df = fever_df.dropna(subset=prob_cols)
+
 # standardize column names ----
 fever_df.columns = fever_df.columns.str.lower().str.replace(' ', '_', regex=True)
 
