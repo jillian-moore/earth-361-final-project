@@ -39,7 +39,7 @@ for col in ['temp_avg', 'precipitation_avg', 'humidity_avg']:
 
 # add new cols for later ----
 # date col
-fever_df['date'] = pd.to_datetime(df[['year', 'month']].assign(day=1))
+fever_df['date'] = pd.to_datetime(fever_df[['year', 'month']].assign(day=1))
 
 # season col
 # seasons pulled from Sri Lanka Met Department
@@ -64,7 +64,7 @@ fever_df['temp_precip_interaction'] = fever_df['temp_avg'] * fever_df['precipita
     
 # outbreak flag (cases > 75th percentile)
 outbreak_threshold = fever_df['cases'].quantile(0.75)
-df['is_outbreak'] = (fever_df['cases'] > outbreak_threshold).astype(int)
+fever_df['is_outbreak'] = (fever_df['cases'] > outbreak_threshold).astype(int)
 
 # lagged cases: district (previous month for same district)
 fever_df = fever_df.sort_values(['district', 'year', 'month'])
