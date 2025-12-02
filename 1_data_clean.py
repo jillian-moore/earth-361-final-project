@@ -86,4 +86,4 @@ fever_df['humidity_category'] = pd.qcut(fever_df['current_specific_humidity'],
                                         labels=['Low', 'Medium', 'High'])
 
 # save out ----
-fever_df.to_csv("data/processed/dengue_data_cleaned.csv")
+fever_df.to_csv("data/processed/dengue_data_cleaned.csv", index=False)
