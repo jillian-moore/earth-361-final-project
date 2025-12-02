@@ -56,14 +56,11 @@ fever_df['season'] = fever_df['month'].apply(get_season)
 # log transform cases
 fever_df['log_cases'] = np.log1p(fever_df['total_cases'])  # log1p handles zero cases
 
-# temperature-rainfall interaction
-fever_df['temp_precip_interaction'] = fever_df['current_temperature'] * fever_df['current_precipitation']
-    
 # outbreak flag (cases > 75th percentile)
 outbreak_threshold = fever_df['total_cases'].quantile(0.75)
 fever_df['is_outbreak'] = (fever_df['total_cases'] > outbreak_threshold).astype(int)
 
-# lagged cases: district (previous month for same city)
+# lagged cases (previous month for same city)
 fever_df = fever_df.sort_values(['city', 'year', 'month'])
 fever_df['cases_lag'] = fever_df.groupby('city')['total_cases'].shift(1)
     

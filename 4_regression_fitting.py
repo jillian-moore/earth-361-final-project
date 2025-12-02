@@ -1,5 +1,3 @@
-# regression analysis and modeling
-
 # load packages ----
 import pandas as pd
 import numpy as np
@@ -18,15 +16,14 @@ print(f"Data shape: {fever_df.shape}")
 print(f"Variables: {fever_df.columns.tolist()}")
 
 # prepare features ----
-# select key predictors
-features = ['temp_avg', 'precipitation_avg', 'humidity_avg', 'elevation']
-target = 'cases'
+features = ['current_temperature', 'current_precipitation', 'current_specific_humidity', 
+            'city', 'year', 'vegetation_ne', 'vegetation_nw', 'vegetation_se', 'vegetation_sw',
+            'current_max_temperature', 'current_min_temperature',
+            'current_diurnal_temperature_range']
+target = 'total_cases'
 
 # remove missing values
 model_data = fever_df[features + [target]].dropna()
-
-print(f"\nModel data shape: {model_data.shape}")
-print(f"Cases range: {model_data[target].min():.0f} to {model_data[target].max():.0f}")
 
 # split train/test ----
 X = model_data[features]
@@ -42,341 +39,257 @@ print(f"Test set: {len(X_test)} samples")
 # ============================================
 # MODEL 1: SIMPLE LINEAR REGRESSION
 # ============================================
-
-print("\n" + "="*60)
-print("MODEL 1: SIMPLE LINEAR REGRESSION")
-print("="*60)
-
-# fit model
 model_linear = LinearRegression()
 model_linear.fit(X_train, y_train)
 
-# predictions
 y_pred_train_linear = model_linear.predict(X_train)
 y_pred_test_linear = model_linear.predict(X_test)
 
-# evaluate
-r2_train_linear = r2_score(y_train, y_pred_train_linear)
-r2_test_linear = r2_score(y_test, y_pred_test_linear)
-rmse_train_linear = np.sqrt(mean_squared_error(y_train, y_pred_train_linear))
-rmse_test_linear = np.sqrt(mean_squared_error(y_test, y_pred_test_linear))
-mae_test_linear = mean_absolute_error(y_test, y_pred_test_linear)
-
-print(f"\nCoefficients:")
+print("\nLinear Model Coefficients:")
 for feature, coef in zip(features, model_linear.coef_):
-    print(f"  {feature:20s}: {coef:8.2f}")
-print(f"  {'Intercept':20s}: {model_linear.intercept_:8.2f}")
+    print(f"{feature:25s}: {coef:.3f}")
+print(f"Intercept: {model_linear.intercept_:.3f}")
 
-print(f"\nPerformance:")
-print(f"  Train R²: {r2_train_linear:.3f}")
-print(f"  Test R²:  {r2_test_linear:.3f}")
-print(f"  Test RMSE: {rmse_test_linear:.1f}")
-print(f"  Test MAE:  {mae_test_linear:.1f}")
+print(f"Train R²: {r2_score(y_train, y_pred_train_linear):.3f}")
+print(f"Test R²:  {r2_score(y_test, y_pred_test_linear):.3f}")
 
 # ============================================
 # MODEL 2: INTERACTION REGRESSION
 # ============================================
-
-print("\n" + "="*60)
-print("MODEL 2: INTERACTION REGRESSION")
-print("="*60)
-
-# create interaction terms
 X_train_interact = X_train.copy()
 X_test_interact = X_test.copy()
 
-# temp × precipitation
-X_train_interact['temp_precip'] = X_train['temp_avg'] * X_train['precipitation_avg']
-X_test_interact['temp_precip'] = X_test['temp_avg'] * X_test['precipitation_avg']
+# create interactions
+X_train_interact['temp_precip'] = X_train['current_temperature'] * X_train['current_precipitation']
+X_test_interact['temp_precip'] = X_test['current_temperature'] * X_test['current_precipitation']
 
-# temp × humidity
-X_train_interact['temp_humid'] = X_train['temp_avg'] * X_train['humidity_avg']
-X_test_interact['temp_humid'] = X_test['temp_avg'] * X_test['humidity_avg']
+X_train_interact['temp_humidity'] = X_train['current_temperature'] * X_train['current_specific_humidity']
+X_test_interact['temp_humidity'] = X_test['current_temperature'] * X_test['current_specific_humidity']
 
-# precipitation × humidity
-X_train_interact['precip_humid'] = X_train['precipitation_avg'] * X_train['humidity_avg']
-X_test_interact['precip_humid'] = X_test['precipitation_avg'] * X_test['humidity_avg']
+X_train_interact['precip_humidity'] = X_train['current_precipitation'] * X_train['current_specific_humidity']
+X_test_interact['precip_humidity'] = X_test['current_precipitation'] * X_test['current_specific_humidity']
 
-# fit model
 model_interact = LinearRegression()
 model_interact.fit(X_train_interact, y_train)
 
-# predictions
-y_pred_train_interact = model_interact.predict(X_train_interact)
 y_pred_test_interact = model_interact.predict(X_test_interact)
-
-# evaluate
-r2_train_interact = r2_score(y_train, y_pred_train_interact)
-r2_test_interact = r2_score(y_test, y_pred_test_interact)
-rmse_train_interact = np.sqrt(mean_squared_error(y_train, y_pred_train_interact))
-rmse_test_interact = np.sqrt(mean_squared_error(y_test, y_pred_test_interact))
-mae_test_interact = mean_absolute_error(y_test, y_pred_test_interact)
-
-print(f"\nPerformance:")
-print(f"  Train R²: {r2_train_interact:.3f}")
-print(f"  Test R²:  {r2_test_interact:.3f}")
-print(f"  Test RMSE: {rmse_test_interact:.1f}")
-print(f"  Test MAE:  {mae_test_interact:.1f}")
+print(f"Interaction Model Test R²: {r2_score(y_test, y_pred_test_interact):.3f}")
 
 # ============================================
 # MODEL 3: LOG-TRANSFORMED REGRESSION
 # ============================================
-
-print("\n" + "="*60)
-print("MODEL 3: LOG-TRANSFORMED REGRESSION")
-print("="*60)
-
-# log transform target (handle zeros with log1p)
 y_train_log = np.log1p(y_train)
 y_test_log = np.log1p(y_test)
 
-# fit model
 model_log = LinearRegression()
 model_log.fit(X_train, y_train_log)
 
-# predictions (transform back to original scale)
-y_pred_train_log_scale = model_log.predict(X_train)
-y_pred_test_log_scale = model_log.predict(X_test)
-
-y_pred_train_log = np.expm1(y_pred_train_log_scale)
-y_pred_test_log = np.expm1(y_pred_test_log_scale)
-
-# evaluate
-r2_train_log = r2_score(y_train, y_pred_train_log)
-r2_test_log = r2_score(y_test, y_pred_test_log)
-rmse_train_log = np.sqrt(mean_squared_error(y_train, y_pred_train_log))
-rmse_test_log = np.sqrt(mean_squared_error(y_test, y_pred_test_log))
-mae_test_log = mean_absolute_error(y_test, y_pred_test_log)
-
-print(f"\nPerformance:")
-print(f"  Train R²: {r2_train_log:.3f}")
-print(f"  Test R²:  {r2_test_log:.3f}")
-print(f"  Test RMSE: {rmse_test_log:.1f}")
-print(f"  Test MAE:  {mae_test_log:.1f}")
+y_pred_test_log = np.expm1(model_log.predict(X_test))
+print(f"Log-Transform Model Test R²: {r2_score(y_test, y_pred_test_log):.3f}")
 
 # ============================================
-# MODEL 4: POLYNOMIAL (NONLINEAR) REGRESSION
+# MODEL 4: POLYNOMIAL REGRESSION
 # ============================================
-
-print("\n" + "="*60)
-print("MODEL 4: POLYNOMIAL REGRESSION (degree=2)")
-print("="*60)
-
-# create polynomial features
 poly = PolynomialFeatures(degree=2, include_bias=False)
 X_train_poly = poly.fit_transform(X_train)
 X_test_poly = poly.transform(X_test)
 
-print(f"\nPolynomial features: {X_train_poly.shape[1]} (from {X_train.shape[1]} original)")
-
-# standardize features for better convergence
 scaler = StandardScaler()
 X_train_poly_scaled = scaler.fit_transform(X_train_poly)
 X_test_poly_scaled = scaler.transform(X_test_poly)
 
-# fit model
 model_poly = LinearRegression()
 model_poly.fit(X_train_poly_scaled, y_train)
 
-# predictions
-y_pred_train_poly = model_poly.predict(X_train_poly_scaled)
 y_pred_test_poly = model_poly.predict(X_test_poly_scaled)
-
-# evaluate
-r2_train_poly = r2_score(y_train, y_pred_train_poly)
-r2_test_poly = r2_score(y_test, y_pred_test_poly)
-rmse_train_poly = np.sqrt(mean_squared_error(y_train, y_pred_train_poly))
-rmse_test_poly = np.sqrt(mean_squared_error(y_test, y_pred_test_poly))
-mae_test_poly = mean_absolute_error(y_test, y_pred_test_poly)
-
-print(f"\nPerformance:")
-print(f"  Train R²: {r2_train_poly:.3f}")
-print(f"  Test R²:  {r2_test_poly:.3f}")
-print(f"  Test RMSE: {rmse_test_poly:.1f}")
-print(f"  Test MAE:  {mae_test_poly:.1f}")
+print(f"Polynomial Model Test R²: {r2_score(y_test, y_pred_test_poly):.3f}")
 
 # ============================================
-# MODEL COMPARISON
+# MODEL COMPARISON SUMMARY
 # ============================================
-
-print("\n" + "="*60)
-print("MODEL COMPARISON SUMMARY")
-print("="*60)
-
 results = pd.DataFrame({
     'Model': ['Linear', 'Interaction', 'Log-Transform', 'Polynomial'],
-    'Train_R2': [r2_train_linear, r2_train_interact, r2_train_log, r2_train_poly],
-    'Test_R2': [r2_test_linear, r2_test_interact, r2_test_log, r2_test_poly],
-    'Test_RMSE': [rmse_test_linear, rmse_test_interact, rmse_test_log, rmse_test_poly],
-    'Test_MAE': [mae_test_linear, mae_test_interact, mae_test_log, mae_test_poly]
+    'Test_R2': [
+        r2_score(y_test, y_pred_test_linear),
+        r2_score(y_test, y_pred_test_interact),
+        r2_score(y_test, y_pred_test_log),
+        r2_score(y_test, y_pred_test_poly)
+    ]
 })
 
-print(results.to_string(index=False))
+print(results)
+results.to_csv('output/fever_model_comparison.csv', index=False)
 
-# save results
-results.to_csv('output/model_comparison.csv', index=False)
 
 # ============================================
-# VISUALIZATION: PREDICTED VS ACTUAL
+# AUTOREGRESSIVE REGRESSION MODEL
 # ============================================
 
-fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+import matplotlib.pyplot as plt
 
-models_pred = [
-    ('Linear', y_pred_test_linear),
-    ('Interaction', y_pred_test_interact),
-    ('Log-Transform', y_pred_test_log),
-    ('Polynomial', y_pred_test_poly)
+# ------------------------------
+# Load data
+# ------------------------------
+fever_df = pd.read_csv("data/processed/dengue_data_cleaned.csv")
+
+# Sort by city and date to preserve temporal order
+fever_df['date'] = pd.to_datetime(fever_df['date'])
+fever_df = fever_df.sort_values(['city', 'date'])
+
+# ------------------------------
+# Create lagged features
+# ------------------------------
+lags = [1, 2, 3]  # you can adjust number of lags
+for lag in lags:
+    fever_df[f'cases_lag_{lag}'] = fever_df.groupby('city')['total_cases'].shift(lag)
+
+# ------------------------------
+# Select predictors and target
+# ------------------------------
+features = [
+    'cases_lag_1', 'cases_lag_2', 'cases_lag_3',
+    'current_temperature', 'current_precipitation', 'current_specific_humidity',
+    'vegetation_ne', 'vegetation_nw', 'vegetation_se', 'vegetation_sw'
+]
+target = 'total_cases'
+
+# Drop rows with NaNs from lagging
+model_data = fever_df[features + [target]].dropna()
+
+X = model_data[features]
+y = model_data[target]
+
+print(f"Model data shape: {X.shape}")
+
+# ------------------------------
+# Train-test split (time-aware)
+# ------------------------------
+# Use 80% of time series for training, last 20% for testing
+split_idx = int(len(model_data) * 0.8)
+X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
+y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
+
+# ------------------------------
+# Fit linear regression
+# ------------------------------
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Predictions
+y_pred_train = model.predict(X_train)
+y_pred_test = model.predict(X_test)
+
+# ------------------------------
+# Evaluate model
+# ------------------------------
+def print_metrics(y_true, y_pred, dataset=""):
+    r2 = r2_score(y_true, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    mae = mean_absolute_error(y_true, y_pred)
+    print(f"{dataset} R²: {r2:.3f}, RMSE: {rmse:.1f}, MAE: {mae:.1f}")
+
+print_metrics(y_train, y_pred_train, "Train")
+print_metrics(y_test, y_pred_test, "Test")
+
+# Print coefficients
+print("\nCoefficients:")
+for feature, coef in zip(features, model.coef_):
+    print(f"{feature:25s}: {coef:.2f}")
+print(f"{'Intercept':25s}: {model.intercept_:.2f}")
+
+# ------------------------------
+# Plot predicted vs actual
+# ------------------------------
+plt.figure(figsize=(8,6))
+plt.scatter(y_test, y_pred_test, alpha=0.5)
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', label='Perfect Prediction')
+plt.xlabel('Actual Total Cases')
+plt.ylabel('Predicted Total Cases')
+plt.title('Autoregressive Model: Predicted vs Actual')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+
+# ENVIRONMENTAL PART 2
+ # ============================
+# Compute 12-week rolling averages per city
+# ============================
+climate_vars = [
+    'current_temperature', 
+    'current_precipitation', 
+    'current_specific_humidity', 
+    'current_max_temperature', 
+    'current_min_temperature', 
+    'current_diurnal_temperature_range'
 ]
 
-for ax, (name, y_pred) in zip(axes.flat, models_pred):
-    # scatter plot
-    ax.scatter(y_test, y_pred, alpha=0.5, s=20)
-    
-    # perfect prediction line
-    min_val = min(y_test.min(), y_pred.min())
-    max_val = max(y_test.max(), y_pred.max())
-    ax.plot([min_val, max_val], [min_val, max_val], 
-            'r--', linewidth=2, label='Perfect Prediction')
-    
-    # labels
-    ax.set_xlabel('Actual Cases', fontsize=10)
-    ax.set_ylabel('Predicted Cases', fontsize=10)
-    ax.set_title(f'{name} Model', fontsize=11, fontweight='bold')
-    ax.legend(fontsize=9)
-    ax.grid(True, alpha=0.3)
-    
-    # add R² to plot
-    r2 = r2_score(y_test, y_pred)
-    ax.text(0.05, 0.95, f'R² = {r2:.3f}', 
-            transform=ax.transAxes, fontsize=10,
-            verticalalignment='top',
-            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+for var in climate_vars:
+    colname = f"{var}_12wk_avg"
+    fever_df[colname] = (
+        fever_df.groupby('city')[var]
+        .rolling(window=12, min_periods=1)
+        .mean()
+        .shift(1)  # lag so we only use past data
+        .reset_index(0, drop=True)
+    )
 
-plt.tight_layout()
-plt.savefig('output/predicted_vs_actual.png', dpi=300, bbox_inches='tight')
-plt.show()
+# ============================
+# Select features
+# ============================
+static_features = ['city', 'year', 'vegetation_ne', 'vegetation_nw', 'vegetation_se', 'vegetation_sw']
 
-# ============================================
-# VISUALIZATION: 3D SURFACE PLOT
-# ============================================
+rolling_features = [f"{var}_12wk_avg" for var in climate_vars]
 
-print("\n" + "="*60)
-print("CREATING 3D SURFACE PLOT")
-print("="*60)
+features = static_features + rolling_features
+target = 'total_cases'
 
-# create grid for temperature and precipitation
-temp_range = np.linspace(X['temp_avg'].min(), X['temp_avg'].max(), 50)
-precip_range = np.linspace(X['precipitation_avg'].min(), X['precipitation_avg'].max(), 50)
+# Drop rows with missing values (from rolling windows)
+model_data = fever_df[features + [target]].dropna()
 
-temp_grid, precip_grid = np.meshgrid(temp_range, precip_range)
+X = model_data[features]
+y = model_data[target]
 
-# use median values for other features
-humidity_median = X['humidity_avg'].median()
-elevation_median = X['elevation'].median()
+# ============================
+# Train-test split
+# ============================
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+import numpy as np
 
-# create prediction grid using best model (polynomial)
-grid_points = pd.DataFrame({
-    'temp_avg': temp_grid.ravel(),
-    'precipitation_avg': precip_grid.ravel(),
-    'humidity_avg': humidity_median,
-    'elevation': elevation_median
-})
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# transform and predict
-grid_poly = poly.transform(grid_points[features])
-grid_poly_scaled = scaler.transform(grid_poly)
-cases_pred = model_poly.predict(grid_poly_scaled)
-cases_grid = cases_pred.reshape(temp_grid.shape)
+# ============================
+# Fit Linear Regression
+# ============================
+model = LinearRegression()
+model.fit(X_train, y_train)
 
-# 3D surface plot ----
-fig = plt.figure(figsize=(12, 9))
-ax = fig.add_subplot(111, projection='3d')
+y_pred_train = model.predict(X_train)
+y_pred_test = model.predict(X_test)
 
-surf = ax.plot_surface(temp_grid, precip_grid, cases_grid,
-                       cmap='viridis', alpha=0.8,
-                       edgecolor='none', antialiased=True)
+# ============================
+# Evaluation function
+# ============================
+def print_metrics(y_true, y_pred, label=""):
+    print(f"{label} R²: {r2_score(y_true, y_pred):.3f}")
+    print(f"{label} RMSE: {np.sqrt(mean_squared_error(y_true, y_pred)):.2f}")
+    print(f"{label} MAE: {mean_absolute_error(y_true, y_pred):.2f}")
 
-# add actual data points
-ax.scatter(X_test['temp_avg'], X_test['precipitation_avg'], y_test,
-           c='red', marker='o', s=20, alpha=0.6, label='Actual Data')
+print_metrics(y_train, y_pred_train, "Train")
+print_metrics(y_test, y_pred_test, "Test")
 
-# labels
-ax.set_xlabel('Temperature (°C)', fontsize=11, labelpad=10)
-ax.set_ylabel('Precipitation (mm)', fontsize=11, labelpad=10)
-ax.set_zlabel('Dengue Cases', fontsize=11, labelpad=10)
-ax.set_title('Dengue Cases as Function of Temperature and Precipitation\n(Polynomial Model)',
-             fontsize=12, fontweight='bold', pad=20)
+# ============================
+# Coefficients
+# ============================
+print("\nCoefficients:")
+for feature, coef in zip(features, model.coef_):
+    print(f"{feature:35s}: {coef:.2f}")
+print(f"{'Intercept':35s}: {model.intercept_:.2f}")
 
-# colorbar
-fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5, label='Predicted Cases')
-
-# legend
-ax.legend(loc='upper left', fontsize=9)
-
-# viewing angle
-ax.view_init(elev=25, azim=45)
-
-plt.tight_layout()
-plt.savefig('output/3d_surface_plot.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-# ============================================
-# VISUALIZATION: 2D CONTOUR PLOT
-# ============================================
-
-fig, ax = plt.subplots(figsize=(10, 8))
-
-# contour plot
-contour = ax.contourf(temp_grid, precip_grid, cases_grid, 
-                      levels=20, cmap='viridis', alpha=0.8)
-
-# add actual data points
-scatter = ax.scatter(X_test['temp_avg'], X_test['precipitation_avg'],
-                    c=y_test, cmap='Reds', s=30, edgecolors='black',
-                    linewidth=0.5, alpha=0.7, label='Actual Data')
-
-# labels
-ax.set_xlabel('Temperature (°C)', fontsize=11)
-ax.set_ylabel('Precipitation (mm)', fontsize=11)
-ax.set_title('Dengue Cases: Temperature × Precipitation (Contour Plot)',
-             fontsize=12, fontweight='bold')
-
-# colorbars
-cbar1 = plt.colorbar(contour, ax=ax, label='Predicted Cases (Model)')
-cbar2 = plt.colorbar(scatter, ax=ax, label='Actual Cases')
-
-ax.grid(True, alpha=0.3)
-ax.legend(fontsize=9)
-
-plt.tight_layout()
-plt.savefig('output/2d_contour_plot.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-# ============================================
-# FEATURE IMPORTANCE (from linear model)
-# ============================================
-
-fig, ax = plt.subplots(figsize=(8, 5))
-
-feature_importance = pd.DataFrame({
-    'Feature': features,
-    'Coefficient': model_linear.coef_
-})
-
-feature_importance = feature_importance.sort_values('Coefficient', ascending=True)
-
-colors = ['coral' if x < 0 else 'steelblue' for x in feature_importance['Coefficient']]
-ax.barh(feature_importance['Feature'], feature_importance['Coefficient'], color=colors)
-ax.axvline(0, color='black', linewidth=0.8)
-ax.set_xlabel('Coefficient Value', fontsize=11)
-ax.set_ylabel('Feature', fontsize=11)
-ax.set_title('Feature Importance (Linear Model Coefficients)', 
-             fontsize=12, fontweight='bold')
-ax.grid(True, alpha=0.3, axis='x')
-
-plt.tight_layout()
-plt.savefig('output/feature_importance.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-print("\n✓ All models trained and visualizations saved to 'output/' folder")
