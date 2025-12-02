@@ -40,7 +40,7 @@ model_linear.fit(X_train, y_train)
 y_pred_train_linear = model_linear.predict(X_train)
 y_pred_test_linear = model_linear.predict(X_test)
 
-# linear model coefs ----
+# evaluate model ----
 for feature, coef in zip(features, model_linear.coef_):
     print(f"{feature:25s}: {coef:.3f}")
 
