@@ -8,6 +8,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 import xgboost as xgb
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.metrics import roc_curve, auc
 
 # load data ----
 df = pd.read_csv('data/processed/dengue_data_cleaned.csv')
@@ -135,7 +136,6 @@ plt.savefig("results/bt_class_feature_importance.png", dpi=300)
 plt.show()
 
 # ROC curve
-from sklearn.metrics import roc_curve, auc
 fpr, tpr, thresholds = roc_curve(y_test, y_pred_prob_test)
 roc_auc = auc(fpr, tpr)
 
