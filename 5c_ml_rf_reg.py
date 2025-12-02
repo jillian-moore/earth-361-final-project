@@ -86,7 +86,6 @@ results = {
     'feature_importance': dict(zip(X.columns, model.feature_importances_.tolist()))
 }
 
-print("\nRandom Forest Regression Results:")
 print(f"Test RMSE: {test_rmse:.2f}")
 print(f"Test MAE: {test_mae:.2f}")
 print(f"Test R²: {test_r2:.4f}")
