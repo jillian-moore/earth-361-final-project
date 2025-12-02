@@ -55,7 +55,6 @@ def print_metrics(y_true, y_pred, dataset=""):
 print_metrics(y_train, y_pred_train, "Train")
 print_metrics(y_test, y_pred_test, "Test")
 
-# print coefs
 for feature, coef in zip(features, model.coef_):
     print(f"{feature:25s}: {coef:.2f}")
 print(f"{'Intercept':25s}: {model.intercept_:.2f}")

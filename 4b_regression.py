@@ -34,6 +34,9 @@ print(f"\nTrain set: {len(X_train)} samples")
 print(f"Test set: {len(X_test)} samples")
 
 # create interactions
+X_train_interact = X_train.copy()
+X_test_interact = X_test.copy()
+
 X_train_interact['temp_precip'] = X_train['current_temperature'] * X_train['current_precipitation']
 X_test_interact['temp_precip'] = X_test['current_temperature'] * X_test['current_precipitation']
 
@@ -47,16 +50,10 @@ X_test_interact['precip_humidity'] = X_test['current_precipitation'] * X_test['c
 model_interact = LinearRegression()
 model_interact.fit(X_train_interact, y_train)
 
-y_pred_test_interact = model_interact.predict(X_test_interact)
-
-# run regression ----
-model_interact = LinearRegression()
-model_interact.fit(X_train_interact, y_train)
-
 y_pred_train_interact = model_interact.predict(X_train_interact)
 y_pred_test_interact = model_interact.predict(X_test_interact)
 
-# linear model coefs ----
+# evaluate model ----
 for feature, coef in zip(X_train_interact.columns, model_interact.coef_):
     print(f"{feature:25s}: {coef:.3f}")
 
