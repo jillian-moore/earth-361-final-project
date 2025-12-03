@@ -4,7 +4,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, RepeatedStratifiedKFold, GridSearchCV
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_auc_score, roc_curve
 from sklearn.ensemble import RandomForestClassifier
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -63,6 +63,7 @@ best_cv_score = grid_search.best_score_
 # predictions ----
 y_pred_train = model.predict(X_train)
 y_pred_test = model.predict(X_test)
+y_proba_test = model.predict_proba(X_test)[:, 1]  # probability of outbreak
 
 # evaluate ----
 train_acc = accuracy_score(y_train, y_pred_train)
@@ -73,6 +74,8 @@ train_precision = precision_score(y_train, y_pred_train)
 test_precision = precision_score(y_test, y_pred_test)
 train_recall = recall_score(y_train, y_pred_train)
 test_recall = recall_score(y_test, y_pred_test)
+test_auc = roc_auc_score(y_test, y_proba_test)
+cm = confusion_matrix(y_test, y_pred_test)
 
 # results ----
 results = {
@@ -88,7 +91,9 @@ results = {
     'test_precision': float(test_precision),
     'train_recall': float(train_recall),
     'test_recall': float(test_recall),
+    'test_auc': float(test_auc),
     'cv_f1': float(best_cv_score),
+    'confusion_matrix': cm.tolist(),
     'feature_importance': dict(zip(X.columns, model.feature_importances_.tolist()))
 }
 
@@ -110,7 +115,6 @@ predictions_df.to_csv('results/rf_classification_predictions.csv', index=False)
 
 # visualizations ----
 # confusion matrix
-cm = confusion_matrix(y_test, y_pred_test)
 plt.figure(figsize=(6, 5))
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
 plt.xlabel('Predicted')
@@ -128,4 +132,19 @@ plt.gca().invert_yaxis()
 plt.title("Top 20 Feature Importances (Random Forest)")
 plt.tight_layout()
 plt.savefig("results/rf_class_feature_importance.png", dpi=300)
+plt.show()
+
+# ROC curve ----
+fpr, tpr, thresholds = roc_curve(y_test, y_proba_test)
+
+plt.figure(figsize=(7, 6))
+plt.plot(fpr, tpr, label=f"AUC = {test_auc:.3f}", linewidth=2)
+plt.plot([0, 1], [0, 1], 'r--', label='Random Baseline')
+
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.title("ROC Curve - Random Forest Classification")
+plt.legend()
+plt.tight_layout()
+plt.savefig("results/rf_class_roc_curve.png", dpi=300)
 plt.show()

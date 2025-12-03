@@ -10,19 +10,25 @@ import json
 sns.set_style("whitegrid")
 plt.rcParams['figure.figsize'] = (14, 10)
 
+# personal examinations ----
+import pprint
+sol= pd.read_csv("results/bt_reg_results_table.csv")
+pprint.pprint(sol['feature_importance'].iloc[0])
+
 # load results ----
 results_files = {
     'Boosted Tree Regression': 'results/bt_reg_results_table.csv',
     'Random Forest Regression': 'results/rf_reg_results_table.csv',
     'Boosted Tree Classification': 'results/bt_class_results_table.csv',
-    'Random Forest Classification': 'results/rf_class_results_table.csv'
+    'Random Forest Classification': 'results/rf_class_results_table.csv',
+    'Elastic Net Regression': 'results/elasticnet_results_table.csv'
 }
 
 results = {}
 for name, file in results_files.items():
     try:
         df = pd.read_csv(file)
-        results[name] = df.iloc[0].to_dict()  # each CSV is a single-row dataframe
+        results[name] = df.iloc[0].to_dict()
     except FileNotFoundError:
         print(f"Warning: {file} not found. Skipping {name}.")
 
@@ -32,40 +38,38 @@ regression_models = {k: v for k, v in results.items() if 'Regression' in k}
 if regression_models:
     reg_comparison = pd.DataFrame({
         'Model': list(regression_models.keys()),
-        'Test RMSE': [v['test_rmse'] for v in regression_models.values()],
-        'Test MAE': [v['test_mae'] for v in regression_models.values()],
-        'Test R²': [v['test_r2'] for v in regression_models.values()],
-        'CV RMSE': [v['cv_rmse'] for v in regression_models.values()]
+        'R²': [v['test_r2'] for v in regression_models.values()],
+        'RMSE': [v['test_rmse'] for v in regression_models.values()],
+        'MAE': [v['test_mae'] for v in regression_models.values()]
     })
     
-    print("\nRegression Model Performance:")
-    print(reg_comparison.to_string(index=False))
+    # sort by RMSE (lower is better)
+    reg_comparison = reg_comparison.sort_values('RMSE')
     
-    # best regression model (lowest Test RMSE)
-    best_reg_idx = reg_comparison['Test RMSE'].idxmin()
-    best_reg_model = reg_comparison.loc[best_reg_idx, 'Model']
-    print(f"\n BEST REGRESSION MODEL: {best_reg_model}")
-    print(f"   Test RMSE: {reg_comparison.loc[best_reg_idx, 'Test RMSE']:.2f}")
-    print(f"   Test R²: {reg_comparison.loc[best_reg_idx, 'Test R²']:.4f}")
+    # save to csv
+    reg_comparison.to_csv('results/regression_comparison.csv', index=False)
+    print(reg_comparison.to_string(index=False))
 
 # classification comparison ----
-classification_models = {k: v for k, v in results.items() if v['task'] == 'classification'}
+classification_models = {k: v for k, v in results.items() if 'Classification' in k}
 
 if classification_models:
-    # only metrics both models have
-    common_metrics = ['test_accuracy', 'test_f1']
+    # check available columns
+    if classification_models:
+        first_model = list(classification_models.values())[0]
+        print(f"Available classification columns: {list(first_model.keys())}\n")
     
     class_comparison = pd.DataFrame({
         'Model': list(classification_models.keys()),
-        **{metric: [v[metric] for v in classification_models.values()] for metric in common_metrics}
+        'Recall': [v.get('test_recall', v.get('recall', np.nan)) for v in classification_models.values()],
+        'ROC AUC': [v.get('test_auc', v.get('roc_auc', np.nan)) for v in classification_models.values()]
     })
     
-    print("\nClassification Model Performance:")
-    print(class_comparison.to_string(index=False))
+    # sort by ROC AUC (higher is better)
+    class_comparison = class_comparison.sort_values('ROC AUC', ascending=False)
     
-    # best model by F1
-    best_class_idx = class_comparison['test_f1'].idxmax()
-    best_class_model = class_comparison.loc[best_class_idx, 'Model']
-    print(f"\n BEST CLASSIFICATION MODEL: {best_class_model}")
-    print(f"   Test F1 Score: {class_comparison.loc[best_class_idx, 'test_f1']:.4f}")
-    print(f"   Test Accuracy: {class_comparison.loc[best_class_idx, 'test_accuracy']:.4f}")
+    # save to csv
+    class_comparison.to_csv('results/classification_comparison.csv', index=False)
+    
+    print("Classification Model Performance:")
+    print(class_comparison.to_string(index=False))

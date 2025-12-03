@@ -1,0 +1,3 @@
+Model,Recall,ROC AUC
+Boosted Tree Classification,0.6901408450704225,0.9467847810846984
+Random Forest Classification,0.6056338028169014,0.9304696960040788
