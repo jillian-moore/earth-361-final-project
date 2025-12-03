@@ -75,7 +75,7 @@ plt.tight_layout()
 plt.savefig("figures/monthly_cases.png", dpi=300)
 plt.show()
 
-# Boxplot by season
+# boxplot by season
 plt.figure(figsize=(8,5))
 sns.boxplot(data=df, x='season', y='total_cases')
 plt.title("Cases by Season")
@@ -188,7 +188,6 @@ plt.savefig("figures/lag_correlation_precip.png", dpi=300)
 plt.show()
 
 # outbreak analysis ----
-
 outbreak_counts = df.groupby('city')['is_outbreak'].sum().sort_values(ascending=False)
 
 plt.figure(figsize=(10,6))
@@ -200,7 +199,7 @@ plt.tight_layout()
 plt.savefig("figures/outbreaks_by_city.png", dpi=300)
 plt.show()
 
-# Climate conditions during outbreaks
+# climate conditions during outbreaks
 outbreak_summary = df.groupby('is_outbreak')[[
     'current_temperature','current_precipitation',
     'current_specific_humidity','vegetation_ne'
