@@ -48,9 +48,7 @@ beta_v = p_v * sigma_bite  # mosquito infection rate
 m = 20         # mosquitoes per human
 N_v = m * N_h   # total mosquito population
 
-print(f"\n{'='*60}")
-print(f"MODEL PARAMETERS")
-print(f"{'='*60}")
+# print parameters ----
 print(f"Human population N_h: {N_h:,}")
 print(f"Mosquito population N_v: {N_v:,}")
 print(f"Mosquito-to-human ratio m: {m}")

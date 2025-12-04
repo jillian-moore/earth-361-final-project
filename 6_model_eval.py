@@ -48,6 +48,15 @@ if regression_models:
     
     # save to csv
     reg_comparison.to_csv('results/regression_comparison.csv', index=False)
+    # save to .tex
+    reg_comparison.to_latex(
+        'results/reg_comparison.tex',
+        index=False,
+        escape=False,          # allows LaTeX symbols like % or _
+        caption=None,
+        label=None
+    )
+
     print(reg_comparison.to_string(index=False))
 
 # classification comparison ----
@@ -70,6 +79,13 @@ if classification_models:
     
     # save to csv
     class_comparison.to_csv('results/classification_comparison.csv', index=False)
-    
-    print("Classification Model Performance:")
+    # save to .tex
+    class_comparison.to_latex(
+        'results/classification_comparison.tex',
+        index=False,
+        escape=False,          # allows LaTeX symbols like % or _
+        caption=None,
+        label=None
+    )
+
     print(class_comparison.to_string(index=False))
