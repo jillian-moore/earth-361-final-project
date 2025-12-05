@@ -15,30 +15,52 @@ corr_vars = [
     'total_cases','log_cases',
     'current_temperature','current_max_temperature','current_min_temperature',
     'current_diurnal_temperature_range',
-    'current_precipitation','satellite_precipiatation',
+    'current_precipitation',
     'current_specific_humidity',
     'vegetation_ne','vegetation_nw','vegetation_se','vegetation_sw',
     'forecast_precipitation','forecast_mean_temperature','forecast_relative_humidity'
 ]
 
+# create abbreviated names
+abbrev_names = {
+    'total_cases': 'Cases',
+    'log_cases': 'Log Cases',
+    'current_temperature': 'Temp',
+    'current_max_temperature': 'Max Temp',
+    'current_min_temperature': 'Min Temp',
+    'current_diurnal_temperature_range': 'DTR',
+    'current_precipitation': 'Precip',
+    'current_specific_humidity': 'Humidity',
+    'vegetation_ne': 'Veg NE',
+    'vegetation_nw': 'Veg NW',
+    'vegetation_se': 'Veg SE',
+    'vegetation_sw': 'Veg SW',
+    'forecast_precipitation': 'Fcst Precip',
+    'forecast_mean_temperature': 'Fcst Temp',
+    'forecast_relative_humidity': 'Fcst RH'
+}
+
 corr_matrix = df[corr_vars].corr()
-print(corr_matrix)
+corr_matrix = corr_matrix.rename(columns=abbrev_names, index=abbrev_names)
 
 corr_matrix.to_latex(
     "figures/corr_matrix.tex",
-    index=True,       # keep the is_outbreak index
-    float_format="%.2f"  # round floats to 2 decimals
+    index=False,
+    escape=False,
+    float_format="%.2f"
 )
 
 # correlation heatmap
+corr_matrix = df[corr_vars].corr()
 fig, ax = plt.subplots(figsize=(14, 10))
 sns.heatmap(corr_matrix, annot=False, cmap='coolwarm', center=0)
 ax.set_title("Correlation Matrix for Climate, Vegetation & Cases", fontsize=14)
 plt.tight_layout()
-plt.savefig("output/correlation_matrix.png", dpi=300)
+plt.savefig("figures/correlation_matrix.png", dpi=300)
 plt.show()
 
 # scatter matrix for highly correlated variables
+corr_matrix = df[corr_vars].corr()
 top_corr = (
     corr_matrix['total_cases']
     .abs()
@@ -50,7 +72,7 @@ top_corr = (
 
 # generate pairplot
 g = sns.pairplot(df[top_corr], diag_kind='kde')
-g.figure.subplots_adjust(top=0.92)   # <<< IMPORTANT
+g.figure.subplots_adjust(top=0.92)  
 g.figure.suptitle(
     "Pairplot of Top Variables Correlated with Total Cases",
     fontsize=16
@@ -84,83 +106,172 @@ plt.tight_layout()
 plt.savefig("figures/cases_by_season.png", dpi=300)
 plt.show()
 
-# 4. climate & vegtation relationships ----
-# vegatation
-fig, axes = plt.subplots(1, 4, figsize=(18, 5))
+# 4. climate & vegetation relationships ----
+title_size = 18
+label_size = 16
+tick_size = 14
 
-sns.regplot(ax=axes[0], data=df, x='vegetation_se', y='total_cases',
-            scatter_kws={'alpha':0.3}, line_kws={'color':'red'})
-axes[0].set_title("Vegetation SE vs Cases")
-axes[0].set_xlabel("Vegetation Index (NDVI)")
-axes[0].set_ylabel("Total Dengue Cases")
+fig, axes = plt.subplots(2, 2, figsize=(18, 10))  # Taller height for 2x2 grid
 
-sns.regplot(ax=axes[1], data=df, x='vegetation_sw', y='total_cases',
-            scatter_kws={'alpha':0.3}, line_kws={'color':'red'})
-axes[1].set_title("Vegetation SW vs Cases")
-axes[1].set_xlabel("Vegetation Index (NDVI)")
-axes[1].set_ylabel("Total Dengue Cases")
+# SE
+sns.regplot(
+    ax=axes[0, 0],
+    data=df,
+    x='vegetation_se',
+    y='total_cases',
+    scatter_kws={'alpha':0.3},
+    line_kws={'color':'red'}
+)
+axes[0, 0].set_title("Vegetation SE vs Cases", fontsize=title_size)
+axes[0, 0].set_xlabel("Vegetation Index (NDVI)", fontsize=label_size)
+axes[0, 0].set_ylabel("Total Dengue Cases", fontsize=label_size)
+axes[0, 0].tick_params(axis='both', labelsize=tick_size)
 
-sns.regplot(ax=axes[2], data=df, x='vegetation_ne', y='total_cases',
-            scatter_kws={'alpha':0.3}, line_kws={'color':'red'})
-axes[2].set_title("Vegetation NE vs Cases")
-axes[2].set_xlabel("Vegetation Index (NDVI)")
-axes[2].set_ylabel("Total Dengue Cases")
+# SW
+sns.regplot(
+    ax=axes[0, 1],
+    data=df,
+    x='vegetation_sw',
+    y='total_cases',
+    scatter_kws={'alpha':0.3},
+    line_kws={'color':'red'}
+)
+axes[0, 1].set_title("Vegetation SW vs Cases", fontsize=title_size)
+axes[0, 1].set_xlabel("Vegetation Index (NDVI)", fontsize=label_size)
+axes[0, 1].set_ylabel("Total Dengue Cases", fontsize=label_size)
+axes[0, 1].tick_params(axis='both', labelsize=tick_size)
 
-sns.regplot(ax=axes[3], data=df, x='vegetation_nw', y='total_cases',
-            scatter_kws={'alpha':0.3}, line_kws={'color':'red'})
-axes[3].set_title("Vegetation NW vs Cases")
-axes[3].set_xlabel("Vegetation Index (NDVI)")
-axes[3].set_ylabel("Total Dengue Cases")
+# NE
+sns.regplot(
+    ax=axes[1, 0],
+    data=df,
+    x='vegetation_ne',
+    y='total_cases',
+    scatter_kws={'alpha':0.3},
+    line_kws={'color':'red'}
+)
+axes[1, 0].set_title("Vegetation NE vs Cases", fontsize=title_size)
+axes[1, 0].set_xlabel("Vegetation Index (NDVI)", fontsize=label_size)
+axes[1, 0].set_ylabel("Total Dengue Cases", fontsize=label_size)
+axes[1, 0].tick_params(axis='both', labelsize=tick_size)
+
+# NW
+sns.regplot(
+    ax=axes[1, 1],
+    data=df,
+    x='vegetation_nw',
+    y='total_cases',
+    scatter_kws={'alpha':0.3},
+    line_kws={'color':'red'}
+)
+axes[1, 1].set_title("Vegetation NW vs Cases", fontsize=title_size)
+axes[1, 1].set_xlabel("Vegetation Index (NDVI)", fontsize=label_size)
+axes[1, 1].set_ylabel("Total Dengue Cases", fontsize=label_size)
+axes[1, 1].tick_params(axis='both', labelsize=tick_size)
 
 plt.tight_layout()
 plt.savefig("figures/vegetation_vs_cases.png", dpi=300)
 plt.show()
 
 # current temp, precip, and humidity
+title_size = 18
+label_size = 16
+tick_size = 14
+
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-sns.regplot(ax=axes[0], data=df, x='current_precipitation', y='total_cases',
-            scatter_kws={'alpha':0.3}, line_kws={'color':'red'})
-axes[0].set_title("Current Precipitation vs Cases")
-axes[0].set_xlabel("Precipitation (mm)")
-axes[0].set_ylabel("Total Dengue Cases")
+sns.regplot(
+    ax=axes[0],
+    data=df,
+    x='current_precipitation',
+    y='total_cases',
+    scatter_kws={'alpha':0.3},
+    line_kws={'color':'red'}
+)
 
-sns.regplot(ax=axes[1], data=df, x='current_temperature', y='total_cases',
-            scatter_kws={'alpha':0.3}, line_kws={'color':'red'})
-axes[1].set_title("Current Temperature vs Cases")
-axes[1].set_xlabel("Temperature (°C)")
-axes[1].set_ylabel("Total Dengue Cases")
+axes[0].set_title("Current Precipitation vs Cases", fontsize=title_size)
+axes[0].set_xlabel("Precipitation (mm)", fontsize=label_size)
+axes[0].set_ylabel("Total Dengue Cases", fontsize=label_size)
+axes[0].tick_params(axis='both', labelsize=tick_size)
 
-sns.regplot(ax=axes[2], data=df, x='current_specific_humidity', y='total_cases',
-            scatter_kws={'alpha':0.3}, line_kws={'color':'red'})
-axes[2].set_title("Specific Humidity vs Cases")
-axes[2].set_xlabel("Specific Humidity (g/kg)")
-axes[2].set_ylabel("Total Dengue Cases")
+sns.regplot(
+    ax=axes[1],
+    data=df,
+    x='current_temperature',
+    y='total_cases',
+    scatter_kws={'alpha':0.3},
+    line_kws={'color':'red'}
+)
+
+axes[1].set_title("Current Temperature vs Cases", fontsize=title_size)
+axes[1].set_xlabel("Temperature (°C)", fontsize=label_size)
+axes[1].set_ylabel("Total Dengue Cases", fontsize=label_size)
+axes[1].tick_params(axis='both', labelsize=tick_size)
+
+sns.regplot(
+    ax=axes[2],
+    data=df,
+    x='current_specific_humidity',
+    y='total_cases',
+    scatter_kws={'alpha':0.3},
+    line_kws={'color':'red'}
+)
+
+axes[2].set_title("Specific Humidity vs Cases", fontsize=title_size)
+axes[2].set_xlabel("Specific Humidity (g/kg)", fontsize=label_size)
+axes[2].set_ylabel("Total Dengue Cases", fontsize=label_size)
+axes[2].tick_params(axis='both', labelsize=tick_size)
 
 plt.tight_layout()
 plt.savefig("figures/precip_temp_humidity_vs_cases.png", dpi=300)
 plt.show()
 
 # diurnal, max, and min temp
+# set font sizes
+title_size = 18
+label_size = 16
+tick_size = 14
+
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-sns.regplot(ax=axes[0], data=df, x='current_diurnal_temperature_range', y='total_cases',
-            scatter_kws={'alpha':0.3}, line_kws={'color':'red'})
-axes[0].set_title("Diurnal Temperature Range vs Cases")
-axes[0].set_xlabel("Diurnal Temp Range (°C)")
-axes[0].set_ylabel("Total Dengue Cases")
+sns.regplot(
+    ax=axes[0],
+    data=df,
+    x='current_diurnal_temperature_range',
+    y='total_cases',
+    scatter_kws={'alpha':0.3},
+    line_kws={'color':'red'}
+)
+axes[0].set_title("Diurnal Temperature Range vs Cases", fontsize=title_size)
+axes[0].set_xlabel("Diurnal Temp Range (°C)", fontsize=label_size)
+axes[0].set_ylabel("Total Dengue Cases", fontsize=label_size)
+axes[0].tick_params(axis='both', labelsize=tick_size)
 
-sns.regplot(ax=axes[1], data=df, x='current_min_temperature', y='total_cases',
-            scatter_kws={'alpha':0.3}, line_kws={'color':'red'})
-axes[1].set_title("Min Temperature vs Cases")
-axes[1].set_xlabel("Minimum Temperature (°C)")
-axes[1].set_ylabel("Total Dengue Cases")
+sns.regplot(
+    ax=axes[1],
+    data=df,
+    x='current_min_temperature',
+    y='total_cases',
+    scatter_kws={'alpha':0.3},
+    line_kws={'color':'red'}
+)
+axes[1].set_title("Min Temperature vs Cases", fontsize=title_size)
+axes[1].set_xlabel("Minimum Temperature (°C)", fontsize=label_size)
+axes[1].set_ylabel("Total Dengue Cases", fontsize=label_size)
+axes[1].tick_params(axis='both', labelsize=tick_size)
 
-sns.regplot(ax=axes[2], data=df, x='current_max_temperature', y='total_cases',
-            scatter_kws={'alpha':0.3}, line_kws={'color':'red'})
-axes[2].set_title("Max Temperature vs Cases")
-axes[2].set_xlabel("Maximum Temperature (°C)")
-axes[2].set_ylabel("Total Dengue Cases")
+sns.regplot(
+    ax=axes[2],
+    data=df,
+    x='current_max_temperature',
+    y='total_cases',
+    scatter_kws={'alpha':0.3},
+    line_kws={'color':'red'}
+)
+axes[2].set_title("Max Temperature vs Cases", fontsize=title_size)
+axes[2].set_xlabel("Maximum Temperature (°C)", fontsize=label_size)
+axes[2].set_ylabel("Total Dengue Cases", fontsize=label_size)
+axes[2].tick_params(axis='both', labelsize=tick_size)
 
 plt.tight_layout()
 plt.savefig("figures/thermal_vars_vs_cases.png", dpi=300)
@@ -171,19 +282,31 @@ max_lag = 6
 lags = range(0, max_lag + 1)
 correlations = []
 
+# compute lagged correlations
 for lag in lags:
-    df_sorted = df.sort_values(["city","date"]).copy()
-    df_sorted['precip_lag'] = df_sorted.groupby('city')['current_precipitation'].shift(lag)
-    valid = df_sorted.dropna(subset=['total_cases','precip_lag'])
+    df_sorted = df.sort_values(["city", "date"]).copy()
+    df_sorted['precip_lag'] = df_sorted.groupby('city')['satellite_precipiatation'].shift(lag)
+    valid = df_sorted.dropna(subset=['total_cases', 'precip_lag'])
     correlations.append(valid['total_cases'].corr(valid['precip_lag']))
 
-plt.figure(figsize=(8,5))
-plt.plot(lags, correlations, '-o')
-plt.axhline(0, color='red', linestyle='--')
-plt.title("Lagged Cross-Correlation: Cases vs Precipitation")
-plt.xlabel("Lag (months)")
-plt.ylabel("Correlation")
+title_size = 18
+label_size = 16
+tick_size = 14
+
+plt.figure(figsize=(10, 6))
+plt.plot(lags, correlations, '-o', markersize=8, linewidth=2)
+
+plt.axhline(0, color='red', linestyle='--', linewidth=1.5)
+
+plt.title("Lagged Cross-Correlation: Cases vs Precipitation", fontsize=title_size)
+plt.xlabel("Lag (months)", fontsize=label_size)
+plt.ylabel("Correlation", fontsize=label_size)
+
+plt.xticks(fontsize=tick_size)
+plt.yticks(fontsize=tick_size)
+
 plt.grid(alpha=0.3)
+plt.tight_layout()
 plt.savefig("figures/lag_correlation_precip.png", dpi=300)
 plt.show()
 
