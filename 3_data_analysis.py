@@ -81,6 +81,7 @@ g.figure.savefig("figures/pairplot_top_correlations.png", dpi=300, bbox_inches='
 plt.show()
 
 # temporal patterns ----
+# everyone
 df['date'] = pd.to_datetime(df['date'])
 df = df.sort_values("date")
 
@@ -95,6 +96,47 @@ plt.grid(alpha=0.3)
 plt.xticks(rotation=45)
 plt.tight_layout()
 plt.savefig("figures/monthly_cases.png", dpi=300)
+plt.show()
+
+# san juan
+df['date'] = pd.to_datetime(df['date'])
+df = df.sort_values("date")
+
+df_city0 = df[df['city'] == 0].copy()
+
+monthly0 = (
+    df_city0.groupby(['year', 'month'])['total_cases']
+    .sum()
+    .reset_index()
+)
+
+monthly0['date'] = pd.to_datetime(
+    monthly0[['year', 'month']].assign(day=1)
+)
+
+title_size = 20
+label_size = 18
+tick_size  = 14
+
+plt.figure(figsize=(12, 6))
+plt.plot(
+    monthly0['date'],
+    monthly0['total_cases'],
+    '-o',
+    markersize=6,
+    linewidth=2.5
+)
+
+plt.title("Monthly Dengue Cases Over Time (San Juan, Puerto Rico)", fontsize=title_size)
+plt.ylabel("Total Dengue Cases", fontsize=label_size)
+plt.xlabel("Date", fontsize=label_size)
+
+plt.grid(alpha=0.3)
+plt.xticks(rotation=45, fontsize=tick_size)
+plt.yticks(fontsize=tick_size)
+
+plt.tight_layout()
+plt.savefig("figures/monthly_cases_city0.png", dpi=400, bbox_inches='tight')
 plt.show()
 
 # boxplot by season

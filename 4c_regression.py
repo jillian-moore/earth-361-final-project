@@ -59,3 +59,50 @@ for feature, coef in zip(features, model.coef_):
     print(f"{feature:25s}: {coef:.2f}")
 print(f"{'Intercept':25s}: {model.intercept_:.2f}")
 
+# visualize ----
+# ensure arrays are aligned and clean
+y_obs = y_test.to_numpy(dtype=float)
+y_hat = y_pred_test.astype(float)
+
+# remove any NaN pairs (just in case)
+mask = ~np.isnan(y_obs) & ~np.isnan(y_hat)
+y_obs = y_obs[mask]
+y_hat = y_hat[mask]
+
+# compute 1:1 line limits
+lims = [min(y_obs.min(), y_hat.min()),
+        max(y_obs.max(), y_hat.max())]
+
+# formatting
+title_size = 22
+label_size = 20
+tick_size  = 16
+
+plt.figure(figsize=(8, 7))
+
+# scatter plot
+plt.scatter(
+    y_obs, y_hat,
+    color='purple',
+    alpha=0.6,
+    s=40,
+    edgecolor='none'
+)
+
+# 1:1 reference line
+plt.plot(lims, lims, 'r--', linewidth=2.5)
+
+# titles + labels
+plt.title("Observed vs Predicted Dengue Cases", fontsize=title_size)
+plt.xlabel("Observed Cases", fontsize=label_size)
+plt.ylabel("Predicted Cases", fontsize=label_size)
+plt.tick_params(axis='both', labelsize=tick_size)
+
+# grid + layout
+plt.grid(alpha=0.3)
+plt.xlim(lims)
+plt.ylim(lims)
+
+plt.tight_layout()
+plt.savefig("figures/4c_autoreg_viz.png", dpi=450, bbox_inches='tight')
+plt.show()

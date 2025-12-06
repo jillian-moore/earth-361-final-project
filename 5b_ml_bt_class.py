@@ -122,7 +122,7 @@ plt.figure(figsize=(6,5))
 sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues")
 plt.xlabel("Predicted")
 plt.ylabel("Actual")
-plt.title("Confusion Matrix")
+plt.title("Boosted Tree Classification Confusion Matrix")
 plt.tight_layout()
 plt.savefig("results/bt_class_confusion_matrix.png", dpi=300)
 plt.show()
@@ -147,4 +147,44 @@ plt.title("ROC Curve")
 plt.legend(loc="lower right")
 plt.tight_layout()
 plt.savefig("results/bt_class_roc_curve.png", dpi=300)
+plt.show()
+
+# latex plot ----
+title_size = 22
+label_size = 20
+tick_size  = 16
+
+fpr, tpr, thresholds = roc_curve(y_test, y_pred_prob_test)
+roc_auc = auc(fpr, tpr)
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))  # 1 row, 2 columns
+
+# confusion matrix
+sns.heatmap(
+    conf_matrix, 
+    annot=True, 
+    fmt="d", 
+    cmap="Blues", 
+    cbar=False, 
+    linewidths=0.5, 
+    linecolor='gray', 
+    annot_kws={"size": 14, "weight": "bold"},
+    ax=axes[0]  # plot in first subplot
+)
+axes[0].set_xlabel("Predicted", fontsize=label_size)
+axes[0].set_ylabel("Actual", fontsize=label_size)
+axes[0].set_title("Boosted Tree Confusion Matrix", fontsize=title_size)
+axes[0].tick_params(labelsize=tick_size)
+
+# ROC curve
+axes[1].plot(fpr, tpr, lw=2, label=f"AUC = {roc_auc:.3f}")
+axes[1].plot([0, 1], [0, 1], 'r--', lw=2)
+axes[1].set_xlabel("False Positive Rate", fontsize=label_size)
+axes[1].set_ylabel("True Positive Rate", fontsize=label_size)
+axes[1].set_title("ROC Curve", fontsize=title_size)
+axes[1].tick_params(labelsize=tick_size)
+axes[1].legend(loc="lower right", fontsize=tick_size)
+
+plt.tight_layout()
+plt.savefig("results/bt_class_cm_roc.png", dpi=300)
 plt.show()

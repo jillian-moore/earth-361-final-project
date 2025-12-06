@@ -199,53 +199,62 @@ params_df = pd.DataFrame([{
 params_df.to_csv('results/seir_1993_1996_parameters.csv', index=False)
 
 # visualizations ----
-fig = plt.figure(figsize=(14, 10))
+title_size = 20
+label_size = 18
+tick_size  = 14
+legend_size = 14
 
-# plot 1: observed vs predicted cases ----
-ax1 = plt.subplot(2, 2, 1)
-ax1.plot(observed_cases, 'o', label='Observed', color='red', alpha=0.5, markersize=3)
-ax1.plot(predicted_cases, '-', label='Predicted', color='blue', linewidth=2)
-ax1.set_xlabel('Week')
-ax1.set_ylabel('Cases')
-ax1.set_title(f'Dengue Cases 1993-1996: Observed vs Predicted\nR²={r2:.3f}, RMSE={rmse:.1f}, R0={R0:.2f}')
-ax1.legend()
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# observed vs predicted cases
+ax1 = axes[0]
+
+ax1.plot(
+    observed_cases, 'o',
+    label='Observed',
+    color='red',
+    alpha=0.6,
+    markersize=4
+)
+ax1.plot(
+    predicted_cases, '-',
+    label='Predicted',
+    color='blue',
+    linewidth=2.5
+)
+
+ax1.set_xlabel('Week', fontsize=label_size)
+ax1.set_ylabel('Cases', fontsize=label_size)
+ax1.set_title(
+    f'Observed vs Predicted (1993–1996)\n'
+    f'$R^2$={r2:.3f},  RMSE={rmse:.1f},  $R_0$={R0:.2f}',
+    fontsize=title_size
+)
+
+ax1.tick_params(axis='both', labelsize=tick_size)
+ax1.legend(fontsize=legend_size)
 ax1.grid(True, alpha=0.3)
 
-# plot 2: human compartments ----
-ax2 = plt.subplot(2, 2, 2)
-ax2.plot(s_h, label='S (Susceptible)', color='green', linewidth=2)
-ax2.plot(e_h, label='E (Exposed)', color='orange', linewidth=2)
-ax2.plot(i_h, label='I (Infected)', color='red', linewidth=2)
-ax2.plot(r_h, label='R (Recovered)', color='blue', linewidth=2)
-ax2.set_xlabel('Week')
-ax2.set_ylabel('Proportion of Population')
-ax2.set_title('Human SEIR Compartments')
-ax2.legend()
+# humans/mosquitoes exposed/`infected
+ax2 = axes[1]
+
+ax2.plot(e_h, label='Human Exposed ($E_h$)',
+         color='orange', linestyle='--', linewidth=2.5)
+ax2.plot(i_h, label='Human Infected ($I_h$)',
+         color='red', linewidth=2.5)
+ax2.plot(e_v, label='Mosquito Exposed ($E_v$)',
+         color='gold', linestyle='--', linewidth=2, alpha=0.8)
+ax2.plot(i_v, label='Mosquito Infected ($I_v$)',
+         color='darkred', linewidth=2, alpha=0.8)
+
+ax2.set_xlabel('Week', fontsize=label_size)
+ax2.set_ylabel('Proportion', fontsize=label_size)
+ax2.set_title('Human vs Mosquito\nExposed & Infected', fontsize=title_size)
+
+ax2.tick_params(axis='both', labelsize=tick_size)
+ax2.legend(fontsize=legend_size)
 ax2.grid(True, alpha=0.3)
 
-# plot 3: mosquito compartments ----
-ax3 = plt.subplot(2, 2, 3)
-ax3.plot(s_v, label='S (Susceptible)', color='green', linewidth=2)
-ax3.plot(e_v, label='E (Exposed)', color='orange', linewidth=2)
-ax3.plot(i_v, label='I (Infected)', color='red', linewidth=2)
-ax3.set_xlabel('Week')
-ax3.set_ylabel('Proportion of Population')
-ax3.set_title('Mosquito SEI Compartments')
-ax3.legend()
-ax3.grid(True, alpha=0.3)
-
-# plot 4: E and I for both populations ----
-ax4 = plt.subplot(2, 2, 4)
-ax4.plot(e_h, label='E_h (Human Exposed)', color='orange', linestyle='--', linewidth=2)
-ax4.plot(i_h, label='I_h (Human Infected)', color='red', linewidth=2)
-ax4.plot(e_v, label='E_v (Mosquito Exposed)', color='gold', linestyle='--', linewidth=1, alpha=0.7)
-ax4.plot(i_v, label='I_v (Mosquito Infected)', color='darkred', linewidth=1, alpha=0.7)
-ax4.set_xlabel('Week')
-ax4.set_ylabel('Proportion')
-ax4.set_title('Exposed and Infected: Humans vs Mosquitoes')
-ax4.legend()
-ax4.grid(True, alpha=0.3)
-
 plt.tight_layout()
-plt.savefig('results/seir_1993_1996_results.png', dpi=300, bbox_inches='tight')
+plt.savefig('results/seir_side_by_side.png', dpi=400, bbox_inches='tight')
 plt.show()

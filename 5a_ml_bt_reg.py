@@ -143,3 +143,43 @@ plt.title("Top 20 Feature Importances (XGBoost)")
 plt.tight_layout()
 plt.savefig("results/bt_reg_feature_importance.png", dpi=300)
 plt.show()
+
+# latex plot ----
+title_size = 22
+label_size = 20
+tick_size  = 16
+
+residuals = y_test - y_pred_test
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))  # 1 row, 2 columns
+
+# actual v. predicted
+sns.scatterplot(
+    x=y_test, 
+    y=y_pred_test, 
+    alpha=0.6, 
+    ax=axes[0]
+)
+axes[0].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+axes[0].set_xlabel("Actual Cases", fontsize=label_size)
+axes[0].set_ylabel("Predicted Cases", fontsize=label_size)
+axes[0].set_title("Actual vs Predicted Dengue Cases", fontsize=title_size)
+axes[0].tick_params(labelsize=tick_size)
+
+# residuals 
+sns.scatterplot(
+    x=y_pred_test, 
+    y=residuals, 
+    alpha=0.6, 
+    ax=axes[1]
+)
+axes[1].axhline(0, color="red", linestyle="--", lw=2)
+axes[1].set_xlabel("Predicted Cases", fontsize=label_size)
+axes[1].set_ylabel("Residuals", fontsize=label_size)
+axes[1].set_title("Residual Plot", fontsize=title_size)
+axes[1].tick_params(labelsize=tick_size)
+
+plt.tight_layout()
+plt.savefig("results/bt_reg_actual_vs_predicted_and_residuals.png", dpi=300)
+plt.show()
+
