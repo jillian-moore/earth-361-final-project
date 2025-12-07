@@ -1,4 +1,4 @@
-# simple linear regression
+# simple linear regression ----
 
 # load packages ----
 import pandas as pd
@@ -13,19 +13,26 @@ import seaborn as sns
 fever_df = pd.read_csv("data/processed/dengue_data_cleaned.csv")
 
 # prepare features ----
-features = ['current_temperature', 'current_precipitation', 'current_specific_humidity', 
-            'city', 'year', 'vegetation_ne', 'vegetation_nw', 'vegetation_se', 'vegetation_sw',
-            'current_max_temperature', 'current_min_temperature',
-            'current_diurnal_temperature_range']
+features = [
+    'current_temperature', 'current_precipitation', 'current_specific_humidity', 
+    'city', 'year', 'vegetation_ne', 'vegetation_nw', 'vegetation_se', 'vegetation_sw',
+    'current_max_temperature', 'current_min_temperature',
+    'current_diurnal_temperature_range'
+]
 target = 'total_cases'
 
 # remove missing values
 model_data = fever_df[features + [target]].dropna()
 
-# split train/test ----
-X = model_data[features]
+# encode categorical variables ----
+# city is categorical; convert to numeric via one-hot encoding
+model_data = pd.get_dummies(model_data, columns=['city'], drop_first=True)
+
+# split features and target ----
+X = model_data.drop(columns=[target])
 y = model_data[target]
 
+# train/test split ----
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
@@ -37,16 +44,19 @@ print(f"Test set: {len(X_test)} samples")
 model_linear = LinearRegression()
 model_linear.fit(X_train, y_train)
 
+# predictions ----
 y_pred_train_linear = model_linear.predict(X_train)
-y_pred_test_linear = model_linear.predict(X_test)
+y_pred_test_linear  = model_linear.predict(X_test)
 
 # evaluate model ----
-train_rmse = np.sqrt(mean_squared_error(y_train, y_pred_train_interact))
-test_rmse = np.sqrt(mean_squared_error(y_test, y_pred_test_interact))
-train_mae = mean_absolute_error(y_train, y_pred_train_interact)
-test_mae = mean_absolute_error(y_test, y_pred_test_interact)
-train_r2 = r2_score(y_train, y_pred_train_interact)
-test_r2 = r2_score(y_test, y_pred_test_interact)
+train_rmse = np.sqrt(mean_squared_error(y_train, y_pred_train_linear))
+test_rmse  = np.sqrt(mean_squared_error(y_test, y_pred_test_linear))
+
+train_mae = mean_absolute_error(y_train, y_pred_train_linear)
+test_mae  = mean_absolute_error(y_test, y_pred_test_linear)
+
+train_r2 = r2_score(y_train, y_pred_train_linear)
+test_r2  = r2_score(y_test, y_pred_test_linear)
 
 # results dict ----
 results = {
@@ -66,25 +76,23 @@ results_df.to_csv("results/simple_reg_results_table.csv", index=False)
 # save predictions ----
 predictions_df = pd.DataFrame({
     'actual': y_test,
-    'predicted': y_pred_test_interact
+    'predicted': y_pred_test_linear
 })
 predictions_df.to_csv('results/simple_reg_predictions.csv', index=False)
 
 # visualize ----
-# ensure arrays are aligned and clean
 y_obs = y_test.to_numpy(dtype=float)
 y_hat = y_pred_test_linear.astype(float)
 
-# remove any NaN pairs
+# remove any NaN pairs (just in case)
 mask = ~np.isnan(y_obs) & ~np.isnan(y_hat)
 y_obs = y_obs[mask]
 y_hat = y_hat[mask]
 
 # compute 1:1 line limits
-lims = [min(y_obs.min(), y_hat.min()),
-        max(y_obs.max(), y_hat.max())]
+lims = [min(y_obs.min(), y_hat.min()), max(y_obs.max(), y_hat.max())]
 
-# format
+# plot formatting
 title_size = 22
 label_size = 20
 tick_size  = 16
@@ -92,13 +100,7 @@ tick_size  = 16
 plt.figure(figsize=(8, 7))
 
 # scatter plot
-plt.scatter(
-    y_obs, y_hat,
-    color='steelblue',
-    alpha=0.6,
-    s=40,
-    edgecolor='none'
-)
+plt.scatter(y_obs, y_hat, color='steelblue', alpha=0.6, s=40, edgecolor='none')
 
 # 1:1 reference line
 plt.plot(lims, lims, 'r--', linewidth=2.5)
