@@ -53,14 +53,34 @@ model.fit(X_train, y_train)
 y_pred_train = model.predict(X_train)
 y_pred_test = model.predict(X_test)
 
-# evaluate model ----
-def print_metrics(y_true, y_pred, label=""):
-    print(f"{label} R²: {r2_score(y_true, y_pred):.3f}")
-    print(f"{label} RMSE: {np.sqrt(mean_squared_error(y_true, y_pred)):.2f}")
-    print(f"{label} MAE: {mean_absolute_error(y_true, y_pred):.2f}")
+# evaluate model
+train_rmse = np.sqrt(mean_squared_error(y_train, y_pred_train))
+test_rmse = np.sqrt(mean_squared_error(y_test, y_pred_test))
+train_mae = mean_absolute_error(y_train, y_pred_train)
+test_mae = mean_absolute_error(y_test, y_pred_test)
+train_r2 = r2_score(y_train, y_pred_train)
+test_r2 = r2_score(y_test, y_pred_test)
 
-print_metrics(y_train, y_pred_train, "Train")
-print_metrics(y_test, y_pred_test, "Test")
+# results dict
+results = {
+    'model_type': 'Lagged 12-Week Average Regression',  
+    'train_rmse': float(train_rmse),
+    'test_rmse': float(test_rmse),
+    'train_mae': float(train_mae),
+    'test_mae': float(test_mae),
+    'train_r2': float(train_r2),
+    'test_r2': float(test_r2)
+}
+
+results_df = pd.DataFrame([results])
+results_df.to_csv("results/lag_reg_results_table.csv", index=False)
+
+# save predictions ----
+predictions_df = pd.DataFrame({
+    'actual': y_test,
+    'predicted': y_pred_test
+})
+predictions_df.to_csv('results/lag_reg_results_predictions.csv', index=False)
 
 # print coefficients
 for feature, coef in zip(features, model.coef_):

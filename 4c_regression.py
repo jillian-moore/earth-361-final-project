@@ -46,18 +46,33 @@ y_pred_train = model.predict(X_train)
 y_pred_test = model.predict(X_test)
 
 # evaluate model ----
-def print_metrics(y_true, y_pred, dataset=""):
-    r2 = r2_score(y_true, y_pred)
-    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-    mae = mean_absolute_error(y_true, y_pred)
-    print(f"{dataset} R²: {r2:.3f}, RMSE: {rmse:.1f}, MAE: {mae:.1f}")
+train_rmse = np.sqrt(mean_squared_error(y_train, y_pred_train))
+test_rmse = np.sqrt(mean_squared_error(y_test, y_pred_test))
+train_mae = mean_absolute_error(y_train, y_pred_train)
+test_mae = mean_absolute_error(y_test, y_pred_test)
+train_r2 = r2_score(y_train, y_pred_train)
+test_r2 = r2_score(y_test, y_pred_test)
 
-print_metrics(y_train, y_pred_train, "Train")
-print_metrics(y_test, y_pred_test, "Test")
+# results dict
+results = {
+    'model_type': 'Autoregressive Regression',  
+    'train_rmse': float(train_rmse),
+    'test_rmse': float(test_rmse),
+    'train_mae': float(train_mae),
+    'test_mae': float(test_mae),
+    'train_r2': float(train_r2),
+    'test_r2': float(test_r2)
+}
 
-for feature, coef in zip(features, model.coef_):
-    print(f"{feature:25s}: {coef:.2f}")
-print(f"{'Intercept':25s}: {model.intercept_:.2f}")
+results_df = pd.DataFrame([results])
+results_df.to_csv("results/auto_reg_results_table.csv", index=False)
+
+# save predictions ----
+predictions_df = pd.DataFrame({
+    'actual': y_test,
+    'predicted': y_pred_test
+})
+predictions_df.to_csv('results/auto_reg_results_predictions.csv', index=False)
 
 # visualize ----
 # ensure arrays are aligned and clean

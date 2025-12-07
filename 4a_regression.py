@@ -41,12 +41,34 @@ y_pred_train_linear = model_linear.predict(X_train)
 y_pred_test_linear = model_linear.predict(X_test)
 
 # evaluate model ----
-for feature, coef in zip(features, model_linear.coef_):
-    print(f"{feature:25s}: {coef:.3f}")
+train_rmse = np.sqrt(mean_squared_error(y_train, y_pred_train_interact))
+test_rmse = np.sqrt(mean_squared_error(y_test, y_pred_test_interact))
+train_mae = mean_absolute_error(y_train, y_pred_train_interact)
+test_mae = mean_absolute_error(y_test, y_pred_test_interact)
+train_r2 = r2_score(y_train, y_pred_train_interact)
+test_r2 = r2_score(y_test, y_pred_test_interact)
 
-print(f"Intercept: {model_linear.intercept_:.3f}")
-print(f"Train R²: {r2_score(y_train, y_pred_train_linear):.3f}")
-print(f"Test R²:  {r2_score(y_test, y_pred_test_linear):.3f}")
+# results dict ----
+results = {
+    'model_type': 'Simple Linear Regression',  
+    'train_rmse': float(train_rmse),
+    'test_rmse': float(test_rmse),
+    'train_mae': float(train_mae),
+    'test_mae': float(test_mae),
+    'train_r2': float(train_r2),
+    'test_r2': float(test_r2)
+}
+
+# save results ----
+results_df = pd.DataFrame([results])
+results_df.to_csv("results/simple_reg_results_table.csv", index=False)
+
+# save predictions ----
+predictions_df = pd.DataFrame({
+    'actual': y_test,
+    'predicted': y_pred_test_interact
+})
+predictions_df.to_csv('results/simple_reg_predictions.csv', index=False)
 
 # visualize ----
 # ensure arrays are aligned and clean
