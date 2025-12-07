@@ -8,7 +8,6 @@ The dataset originates from public Dengue surveillance records for San Juan and 
 #### Sub-folders/directories
 -   [data/](./data/): contains all data for this project, including the raw CSV files and processed datasets  
 -   [figures/](./figures/): contains all plots and visualizations used in the analysis and final report  
--   [latex/](./latex/): contains all LaTeX source files, tables, and figure references for the final write-up  
 -   [results/](./results/): contains exported model outputs, evaluation metrics, and LaTeX-ready tables  
 
 #### Scripts
