@@ -173,12 +173,12 @@ results_df = pd.DataFrame({
     'e_v': e_v,
     'i_v': i_v
 })
-results_df.to_csv('results/seir_1993_1996_results.csv', index=False)
+results_df.to_csv('results/seir_1994_1996_results.csv', index=False)
 
 # save parameters ----
 params_df = pd.DataFrame([{
     'city': city_value,
-    'year_start': 1993,
+    'year_start': 1994,
     'year_end': 1996,
     'N_h': N_h,
     'N_v': N_v,
@@ -196,7 +196,7 @@ params_df = pd.DataFrame([{
     'rmse': rmse,
     'mae': mae
 }])
-params_df.to_csv('results/seir_1993_1996_parameters.csv', index=False)
+params_df.to_csv('results/seir_1994_1996_parameters.csv', index=False)
 
 # visualizations ----
 title_size = 20
@@ -226,7 +226,7 @@ ax1.plot(
 ax1.set_xlabel('Week', fontsize=label_size)
 ax1.set_ylabel('Cases', fontsize=label_size)
 ax1.set_title(
-    f'Observed vs Predicted (1993–1996)\n'
+    f'Observed vs Predicted (1994–1996)\n'
     f'$R^2$={r2:.3f},  RMSE={rmse:.1f},  $R_0$={R0:.2f}',
     fontsize=title_size
 )
